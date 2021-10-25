@@ -20,11 +20,18 @@ func TestErrorIsResolvesNativeErrTypeCorrectly(t *testing.T) {
 	is.True(errors.Is(err, nativeErrorType))
 }
 
-func TestErrorIsResolvesCustomErrTypeCorrectly(t *testing.T) {
+func TestErrorIsResolvesWrappedCustomErrTypeCorrectly(t *testing.T) {
 	is := is.New(t)
 
 	err := fmt.Errorf("parent error: %w", customErrorType)
 	is.True(errors.Is(err, customErrorType))
+}
+
+func TestErrorIsResolvesWrappedErrInCustomErrTypeCorrectly(t *testing.T) {
+	is := is.New(t)
+
+	err := xerror.Errorf("parent error: %w", nativeErrorType)
+	is.True(errors.Is(err, nativeErrorType))
 }
 
 func TestNewErrorGivesErrInstance(t *testing.T) {

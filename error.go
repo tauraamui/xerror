@@ -37,7 +37,18 @@ type x struct {
 }
 
 func Errorf(format string, values ...interface{}) I {
-	return New(fmt.Errorf(format, values...).Error())
+	return newFromError(fmt.Errorf(format, values...))
+	// return New(fmt.Errorf(format, values...).Error())
+}
+
+func newFromError(e error) I {
+	return &x{
+		error: e,
+		kind:  NA, errMsg: e.Error(), stackTrace: false,
+		stackPrinter: func(e error) string {
+			return fmt.Sprintf("%+v", e)
+		},
+	}
 }
 
 func New(es string) I {
@@ -58,6 +69,18 @@ func NewWithKind(k Kind, es string) I {
 func (x *x) format() {
 	err := errors.New(x.toString())
 	x.error = err
+}
+
+func (x *x) Is(e error) bool {
+	if errors.Is(x.error, e) {
+		return true
+	}
+
+	if err := errors.Unwrap(x.error); err != nil {
+		return errors.Is(err, e)
+	}
+
+	return false
 }
 
 func (x *x) AsKind(k Kind) I {
@@ -89,6 +112,7 @@ func (x *x) Msg(m string) I {
 
 func (x *x) WithStackTrace() I {
 	x.stackTrace = true
+	x.format()
 	return x
 }
 
