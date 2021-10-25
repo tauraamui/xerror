@@ -10,6 +10,23 @@ import (
 	"github.com/tauraamui/xerror"
 )
 
+var nativeErrorType = errors.New("native error type")
+var customErrorType = xerror.New("custom error type")
+
+func TestErrorIsResolvesNativeErrTypeCorrectly(t *testing.T) {
+	is := is.New(t)
+
+	err := fmt.Errorf("parent error: %w", nativeErrorType)
+	is.True(errors.Is(err, nativeErrorType))
+}
+
+func TestErrorIsResolvesCustomErrTypeCorrectly(t *testing.T) {
+	is := is.New(t)
+
+	err := fmt.Errorf("parent error: %w", customErrorType)
+	is.True(errors.Is(err, customErrorType))
+}
+
 func TestNewErrorGivesErrInstance(t *testing.T) {
 	is := is.New(t)
 
