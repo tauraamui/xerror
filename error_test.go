@@ -10,28 +10,61 @@ import (
 	"github.com/tauraamui/xerror"
 )
 
+type tableTest interface {
+	preTest(*testing.T)
+	run(*testing.T)
+}
+
 var nativeErrorType = errors.New("native error type")
 var customErrorType = xerror.New("custom error type")
 
-func TestErrorIsResolvesNativeErrTypeCorrectly(t *testing.T) {
-	is := is.New(t)
-
-	err := fmt.Errorf("parent error: %w", nativeErrorType)
-	is.True(errors.Is(err, nativeErrorType))
+type xerrorWrappedErrorIsTest struct {
+	skip         bool
+	title        string
+	parentError  error
+	wrappedError error
 }
 
-func TestErrorIsResolvesWrappedCustomErrTypeCorrectly(t *testing.T) {
-	is := is.New(t)
+func (x xerrorWrappedErrorIsTest) preTest(t *testing.T) {
+	if len(x.title) == 0 {
+		t.Error("table tests must all have titles")
+	}
 
-	err := fmt.Errorf("parent error: %w", customErrorType)
-	is.True(errors.Is(err, customErrorType))
+	if x.skip {
+		t.Skip()
+	}
 }
 
-func TestErrorIsResolvesWrappedErrInCustomErrTypeCorrectly(t *testing.T) {
-	is := is.New(t)
+func (x xerrorWrappedErrorIsTest) run(t *testing.T) {
+	t.Run(x.title, func(t *testing.T) {
+		is := is.NewRelaxed(t)
 
-	err := xerror.Errorf("parent error: %w", nativeErrorType)
-	is.True(errors.Is(err, nativeErrorType))
+		is.True(errors.Is(x.parentError, x.wrappedError))
+	})
+}
+
+func TestWrappedErrorsFoundWithIsError(t *testing.T) {
+	tests := []xerrorWrappedErrorIsTest{
+		{
+			title:        "error is resolves native error wrapped by native error type correctly",
+			parentError:  fmt.Errorf("parent error: %w", nativeErrorType),
+			wrappedError: nativeErrorType,
+		},
+		{
+			title:        "error is resolves custom error wrapped by native error type correctly",
+			parentError:  fmt.Errorf("parent error: %w", customErrorType),
+			wrappedError: customErrorType,
+		},
+		{
+			title:        "error is resolves custom error wrapped by custom error type correctly",
+			parentError:  xerror.Errorf("parent error: %w", nativeErrorType),
+			wrappedError: nativeErrorType,
+		},
+	}
+
+	for _, tt := range tests {
+		runTest(t, tt)
+	}
 }
 
 func TestNewErrorGivesErrInstance(t *testing.T) {
@@ -68,7 +101,7 @@ func TestErrorToError(t *testing.T) {
 	is.Equal(nativeErr.Error(), "Kind: NATIVE_ERR | native error")
 }
 
-type xerrorTest struct {
+type xerrorExpectedStringTest struct {
 	skip       bool
 	title      string
 	err        error
@@ -76,8 +109,31 @@ type xerrorTest struct {
 	customEval func(string) error
 }
 
+func (x xerrorExpectedStringTest) preTest(t *testing.T) {
+	if len(x.title) == 0 {
+		t.Error("table tests must all have titles")
+	}
+
+	if x.skip {
+		t.Skip()
+	}
+}
+
+func (x xerrorExpectedStringTest) run(t *testing.T) {
+	t.Run(x.title, func(t *testing.T) {
+		is := is.NewRelaxed(t)
+
+		if x.customEval != nil {
+			is.NoErr(x.customEval(x.err.Error()))
+			return
+		}
+
+		is.Equal(x.err.Error(), x.expected)
+	})
+}
+
 func TestNewErrorAndErrorfsOutputsExpectedString(t *testing.T) {
-	tests := []xerrorTest{
+	tests := []xerrorExpectedStringTest{
 		{
 			title:    "simple new error just prints out msg string",
 			err:      xerror.New("fake db update failed"),
@@ -208,23 +264,7 @@ func TestNewErrorAndErrorfsOutputsExpectedString(t *testing.T) {
 	}
 }
 
-func runTest(t *testing.T, tt xerrorTest) {
-	t.Run(tt.title, func(t *testing.T) {
-		if len(tt.title) == 0 {
-			t.Error("table tests must all have titles")
-		}
-
-		if tt.skip {
-			t.Skip()
-		}
-
-		is := is.NewRelaxed(t)
-
-		if tt.customEval != nil {
-			is.NoErr(tt.customEval(tt.err.Error()))
-			return
-		}
-
-		is.Equal(tt.err.Error(), tt.expected)
-	})
+func runTest(t *testing.T, tt tableTest) {
+	tt.preTest(t)
+	tt.run(t)
 }
