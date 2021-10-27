@@ -56,9 +56,19 @@ func TestWrappedErrorsFoundWithIsError(t *testing.T) {
 			wrappedError: customErrorType,
 		},
 		{
-			title:        "error is resolves custom error wrapped by custom error type correctly",
-			parentError:  xerror.Errorf("parent error: %w", nativeErrorType),
-			wrappedError: nativeErrorType,
+			title:        "error is resolves custom error with params wrapped in custom error",
+			parentError:  xerror.Errorf("parent error: %w", customErrorType.WithParam("music", "heavy-metal")),
+			wrappedError: customErrorType,
+		},
+		{
+			title:        "error is resolves custom error wrapped in custom error with params",
+			parentError:  xerror.Errorf("parent error: %w", customErrorType).WithParam("holiday", "spain"),
+			wrappedError: customErrorType,
+		},
+		{
+			title:        "error is resolves custom error wrapped in custom error with stack trace",
+			parentError:  xerror.Errorf("parent error: %w", customErrorType).WithStackTrace(),
+			wrappedError: customErrorType,
 		},
 	}
 

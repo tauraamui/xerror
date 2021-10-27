@@ -29,6 +29,7 @@ const NA = Kind("N/A")
 
 type x struct {
 	kind         Kind
+	causeErr     error
 	errMsg       string
 	error        error
 	stackTrace   bool
@@ -42,9 +43,15 @@ func Errorf(format string, values ...interface{}) I {
 }
 
 func newFromError(e error) I {
+	var cause error
+	if c := errors.Unwrap(e); c != nil {
+		cause = c
+		fmt.Printf("FOUND CAUSE ERROR: %v\n", c)
+	}
 	return &x{
-		error: e,
-		kind:  NA, errMsg: e.Error(), stackTrace: false,
+		error:    e,
+		causeErr: cause,
+		kind:     NA, errMsg: e.Error(), stackTrace: false,
 		stackPrinter: func(e error) string {
 			return fmt.Sprintf("%+v", e)
 		},
@@ -72,7 +79,7 @@ func (x *x) format() {
 }
 
 func (x *x) Is(e error) bool {
-	if errors.Is(x.error, e) {
+	if errors.Is(x.error, e) || errors.Is(x.causeErr, e) {
 		return true
 	}
 
