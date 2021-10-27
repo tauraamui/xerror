@@ -39,14 +39,12 @@ type x struct {
 
 func Errorf(format string, values ...interface{}) I {
 	return newFromError(fmt.Errorf(format, values...))
-	// return New(fmt.Errorf(format, values...).Error())
 }
 
 func newFromError(e error) I {
 	var cause error
 	if c := errors.Unwrap(e); c != nil {
 		cause = c
-		fmt.Printf("FOUND CAUSE ERROR: %v\n", c)
 	}
 	return &x{
 		error:    e,

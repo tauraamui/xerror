@@ -16,10 +16,11 @@ type tableTest interface {
 }
 
 type xerrorWrappedErrorIsTest struct {
-	skip         bool
-	title        string
-	parentError  error
-	wrappedError error
+	skip           bool
+	title          string
+	parentError    error
+	wrappedError   error
+	shouldNotMatch bool
 }
 
 func (x xerrorWrappedErrorIsTest) preTest(t *testing.T) {
@@ -36,7 +37,8 @@ func (x xerrorWrappedErrorIsTest) run(t *testing.T) {
 	t.Run(x.title, func(t *testing.T) {
 		is := is.NewRelaxed(t)
 
-		is.True(errors.Is(x.parentError, x.wrappedError))
+		r := errors.Is(x.parentError, x.wrappedError)
+		is.True((x.shouldNotMatch && !r) || (!x.shouldNotMatch && r))
 	})
 }
 
@@ -105,6 +107,18 @@ func TestWrappedErrorsFoundWithIsError(t *testing.T) {
 					)),
 			),
 			wrappedError: deepChildErrorType,
+		},
+		{
+			title:          "custom error with no wrapped error",
+			parentError:    xerror.Errorf("no wrapped errors here"),
+			wrappedError:   customErrorType,
+			shouldNotMatch: true,
+		},
+		{
+			title:          "custom error with different wrapped error",
+			parentError:    xerror.Errorf("native error right?: %w", nativeErrorType),
+			wrappedError:   customErrorType,
+			shouldNotMatch: true,
 		},
 	}
 
