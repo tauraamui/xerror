@@ -15,9 +15,6 @@ type tableTest interface {
 	run(*testing.T)
 }
 
-var nativeErrorType = errors.New("native error type")
-var customErrorType = xerror.New("custom error type")
-
 type xerrorWrappedErrorIsTest struct {
 	skip         bool
 	title        string
@@ -43,17 +40,41 @@ func (x xerrorWrappedErrorIsTest) run(t *testing.T) {
 	})
 }
 
+var nativeErrorType = errors.New("native error type")
+var customErrorType = xerror.New("custom error type")
+var deepChildErrorType = xerror.New("deep error type")
+
 func TestWrappedErrorsFoundWithIsError(t *testing.T) {
 	tests := []xerrorWrappedErrorIsTest{
 		{
-			title:        "error is resolves native error wrapped by native error type correctly",
+			title:        "error is resolves native error wrapped by native error type",
 			parentError:  fmt.Errorf("parent error: %w", nativeErrorType),
 			wrappedError: nativeErrorType,
 		},
 		{
-			title:        "error is resolves custom error wrapped by native error type correctly",
+			title:        "error is resolves custom error wrapped by native error type",
 			parentError:  fmt.Errorf("parent error: %w", customErrorType),
 			wrappedError: customErrorType,
+		},
+		{
+			title:        "error is resolves custom error with params wrapped by native error type",
+			parentError:  fmt.Errorf("parent error: %w", customErrorType.WithParam("music", "heavy-metal")),
+			wrappedError: customErrorType,
+		},
+		{
+			title:        "error is resolves custom error with stack trace wrapped by native error type",
+			parentError:  fmt.Errorf("parent error: %w", customErrorType.WithStackTrace()),
+			wrappedError: customErrorType,
+		},
+		{
+			title: "error is resolves deeply buried error in custom error tree wrapped by native error type",
+			parentError: fmt.Errorf(
+				"parent error: %w", xerror.Errorf(
+					"sub-1 parent error: %w", xerror.Errorf(
+						"sub-2 parent error: %w", deepChildErrorType,
+					)),
+			),
+			wrappedError: deepChildErrorType,
 		},
 		{
 			title:        "error is resolves custom error with params wrapped in custom error",
@@ -69,6 +90,21 @@ func TestWrappedErrorsFoundWithIsError(t *testing.T) {
 			title:        "error is resolves custom error wrapped in custom error with stack trace",
 			parentError:  xerror.Errorf("parent error: %w", customErrorType).WithStackTrace(),
 			wrappedError: customErrorType,
+		},
+		{
+			title:        "error is resolves custom error with stack trace wrapped in custom error",
+			parentError:  xerror.Errorf("parent error: %w", customErrorType.WithStackTrace()),
+			wrappedError: customErrorType,
+		},
+		{
+			title: "error is resolves deeply buried error wrapped in custom errors tree",
+			parentError: xerror.Errorf(
+				"parent error: %w", xerror.Errorf(
+					"sub-1 parent error: %w", xerror.Errorf(
+						"sub-2 parent error: %w", deepChildErrorType,
+					)),
+			),
+			wrappedError: deepChildErrorType,
 		},
 	}
 
