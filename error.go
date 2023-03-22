@@ -46,11 +46,11 @@ type x struct {
 }
 
 func Errorf(format string, values ...any) I {
-	x := newFromError(fmt.Errorf(format, values...), errorf(format, values))
+	x := newFromError(fmt.Errorf(format, values...), extractWrapped(format, values))
 	return x
 }
 
-func errorf(format string, values []any) I {
+func extractWrapped(format string, values []any) I {
 	args := wrappedArgs(format)
 	if len(args) > 0 && len(values) >= args[0]-1 {
 		if ww, ok := values[args[0]-1].(I); ok {
