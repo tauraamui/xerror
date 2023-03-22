@@ -147,18 +147,21 @@ func TestIsKindAssertsChildInstance(t *testing.T) {
 	is := is.New(t)
 	err := xerror.Errorf("wrapped custom err: %w", xerror.NewWithKind("WRAPPED_ERROR", "not enough rocks"))
 	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "wrapped custom err: Kind: WRAPPED_ERROR | not enough rocks")
 }
 
 func TestIsKindAssertsChildInstanceFromAsKindSuffix(t *testing.T) {
 	is := is.New(t)
 	err := xerror.Errorf("wrapped custom err: %w", xerror.New("not enough rocks").AsKind("WRAPPED_ERROR"))
 	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "wrapped custom err: Kind: WRAPPED_ERROR | not enough rocks")
 }
 
 func TestIsKindAssertsMultipleDescendantChildInstanceFromAsKindSuffix(t *testing.T) {
 	is := is.New(t)
 	err := xerror.Errorf("grandparent wrapped custom err: %w", xerror.Errorf("parent wrapped custom err: %w", xerror.Errorf("child wrapped custom err: %w", xerror.New("sea depth too low").AsKind("DEEP_WRAPPED_ERROR"))))
 	is.True(err.IsKind("DEEP_WRAPPED_ERROR"))
+	is.Equal(err.Error(), "grandparent wrapped custom err: parent wrapped custom err: child wrapped custom err: Kind: DEEP_WRAPPED_ERROR | sea depth too low")
 }
 
 const (
