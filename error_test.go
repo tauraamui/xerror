@@ -155,6 +155,12 @@ func TestIsKindAssertsChildInstanceFromAsKindSuffix(t *testing.T) {
 	is.True(err.IsKind("WRAPPED_ERROR"))
 }
 
+func TestIsKindAssertsMultipleDescendantChildInstanceFromAsKindSuffix(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("grandparent wrapped custom err: %w", xerror.Errorf("parent wrapped custom err: %w", xerror.Errorf("child wrapped custom err: %w", xerror.New("sea depth too low").AsKind("DEEP_WRAPPED_ERROR"))))
+	is.True(err.IsKind("DEEP_WRAPPED_ERROR"))
+}
+
 const (
 	TestError       = xerror.Kind("test_error")
 	TestParamsError = xerror.Kind("test_params_error")
