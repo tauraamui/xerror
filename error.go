@@ -7,11 +7,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-type I interface {
-	AsKind(Kind) I
-	ToError() error
+type XError interface {
 	Error() string
 	ErrorMsg() string
+}
+
+type I interface {
+	AsKind(Kind) I
+	Pinned() XError
+	ToError() error
+	XError
 	Msg(string) I
 	WithStackTrace() I
 	// WithParam will append the param key/value pair passed in
@@ -29,6 +34,7 @@ const NA = Kind("N/A")
 
 type x struct {
 	kind         Kind
+	pinned       bool
 	causeErr     error
 	errMsg       string
 	error        error
@@ -49,7 +55,7 @@ func newFromError(e error) I {
 	return &x{
 		error:    e,
 		causeErr: cause,
-		kind:     NA, errMsg: e.Error(), stackTrace: false,
+		kind:     NA, errMsg: e.Error(), stackTrace: false, pinned: false,
 		stackPrinter: func(e error) string {
 			return fmt.Sprintf("%+v", e)
 		},
@@ -91,6 +97,12 @@ func (x *x) Is(e error) bool {
 func (x *x) AsKind(k Kind) I {
 	defer x.format()
 	x.kind = k
+	return x
+}
+
+func (x *x) Pinned() XError {
+	defer x.format()
+	x.pinned = true
 	return x
 }
 
