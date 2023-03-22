@@ -194,6 +194,13 @@ func TestErrorToError(t *testing.T) {
 	is.Equal(nativeErr.Error(), "Kind: NATIVE_ERR | native error")
 }
 
+func TestErrorMethodWithPinnedDescendant(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.NewWithKind("WRAPPED_ERROR", "not enough rocks").Pin())
+	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "Kind: WRAPPED_ERROR | wrapped custom err: not enough rocks")
+}
+
 type xerrorExpectedStringTest struct {
 	skip       bool
 	title      string
