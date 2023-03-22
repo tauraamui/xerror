@@ -7,11 +7,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-type I interface {
-	AsKind(Kind) I
-	ToError() error
+type XError interface {
 	Error() string
 	ErrorMsg() string
+}
+
+type I interface {
+	AsKind(Kind) I
+	IsKind(Kind) bool
+	Pin() XError
+	isPinned() bool
+	ToError() error
+	XError
 	Msg(string) I
 	WithStackTrace() I
 	// WithParam will append the param key/value pair passed in
@@ -28,7 +35,9 @@ type Kind string
 const NA = Kind("N/A")
 
 type x struct {
+	wrapped      *x
 	kind         Kind
+	pinned       bool
 	causeErr     error
 	errMsg       string
 	error        error
@@ -37,19 +46,59 @@ type x struct {
 	params       map[string]interface{}
 }
 
-func Errorf(format string, values ...interface{}) I {
-	return newFromError(fmt.Errorf(format, values...))
+func Errorf(format string, values ...any) I {
+	x := newFromError(fmt.Errorf(format, values...), extractWrapped(format, values))
+	return x
 }
 
-func newFromError(e error) I {
+func extractWrapped(format string, values []any) *x {
+	args := wrappedArgs(format)
+	if len(args) > 0 && len(values) >= args[0]-1 {
+		if ww, ok := values[args[0]-1].(*x); ok {
+			return ww
+		}
+	}
+
+	return nil
+}
+
+func wrappedArgs(format string) []int {
+	args := []int{}
+	end := len(format)
+
+	verbCount := 0
+	for i := 0; i < end; {
+		b := format[i]
+		foundVerb := false
+		if b == '%' {
+			if i+1 >= end {
+				break
+			}
+			foundVerb = true
+			verbCount++
+			i++
+		}
+
+		if foundVerb && format[i] == 'w' {
+			args = append(args, verbCount)
+		}
+
+		i++
+	}
+
+	return args
+}
+
+func newFromError(e error, w *x) I {
 	var cause error
 	if c := errors.Unwrap(e); c != nil {
 		cause = c
 	}
 	return &x{
+		wrapped:  w,
 		error:    e,
 		causeErr: cause,
-		kind:     NA, errMsg: e.Error(), stackTrace: false,
+		kind:     NA, errMsg: e.Error(), stackTrace: false, pinned: false,
 		stackPrinter: func(e error) string {
 			return fmt.Sprintf("%+v", e)
 		},
@@ -88,9 +137,39 @@ func (x *x) Is(e error) bool {
 	return false
 }
 
+func (x *x) isPinned() bool {
+	if yes := x.pinned; yes {
+		return yes
+	}
+
+	if x.wrapped != nil {
+		return x.wrapped.isPinned()
+	}
+
+	return false
+}
+
+func (x *x) IsKind(k Kind) bool {
+	if yes := x.kind == k; yes {
+		return yes
+	}
+
+	if x.wrapped != nil {
+		return x.wrapped.IsKind(k)
+	}
+
+	return false
+}
+
 func (x *x) AsKind(k Kind) I {
 	defer x.format()
 	x.kind = k
+	return x
+}
+
+func (x *x) Pin() XError {
+	defer x.format()
+	x.pinned = true
 	return x
 }
 
@@ -99,6 +178,8 @@ func (x *x) ToError() error {
 }
 
 func (x *x) Error() string {
+	x.format()
+
 	if x.stackTrace {
 		return x.stackPrinter(x.error)
 	}
@@ -150,10 +231,30 @@ func (x *x) WithParam(key string, v interface{}) I {
 	return x
 }
 
+func (x *x) resolveKind() Kind {
+	k := x.kind
+
+	pk, wasPinned := x.pinnedChildKind()
+	if wasPinned {
+		return pk
+	}
+
+	return k
+}
+
+func (x *x) pinnedChildKind() (Kind, bool) {
+	if x.wrapped == nil {
+		return x.kind, x.pinned
+	}
+
+	return x.wrapped.pinnedChildKind()
+}
+
 func (x *x) toString() string {
 	logMsg := x.errMsg
-	if x.kind != NA || len(x.params) > 0 {
-		logMsg = fmt.Sprintf("Kind: %s | %s", strings.ToUpper(string(x.kind)), x.errMsg)
+	kind := x.resolveKind()
+	if !x.pinned && kind != NA || len(x.params) > 0 {
+		logMsg = fmt.Sprintf("Kind: %s | %s", strings.ToUpper(string(kind)), x.errMsg)
 	}
 
 	params := []string{}

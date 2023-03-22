@@ -42,9 +42,11 @@ func (x xerrorWrappedErrorIsTest) run(t *testing.T) {
 	})
 }
 
-var nativeErrorType = errors.New("native error type")
-var customErrorType = xerror.New("custom error type")
-var deepChildErrorType = xerror.New("deep error type")
+var (
+	nativeErrorType    = errors.New("native error type")
+	customErrorType    = xerror.New("custom error type")
+	deepChildErrorType = xerror.New("deep error type")
+)
 
 func TestWrappedErrorsFoundWithIsError(t *testing.T) {
 	tests := []xerrorWrappedErrorIsTest{
@@ -134,8 +136,38 @@ func TestNewErrorGivesErrInstance(t *testing.T) {
 	is.True(err != nil)
 }
 
-const TestError = xerror.Kind("test_error")
-const TestParamsError = xerror.Kind("test_params_error")
+func TestIsKind(t *testing.T) {
+	is := is.New(t)
+
+	err := xerror.New("test error").AsKind("RANDOM")
+	is.True(err.IsKind("RANDOM"))
+}
+
+func TestIsKindAssertsChildInstance(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.NewWithKind("WRAPPED_ERROR", "not enough rocks"))
+	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "wrapped custom err: Kind: WRAPPED_ERROR | not enough rocks")
+}
+
+func TestIsKindAssertsChildInstanceFromAsKindSuffix(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.New("not enough rocks").AsKind("WRAPPED_ERROR"))
+	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "wrapped custom err: Kind: WRAPPED_ERROR | not enough rocks")
+}
+
+func TestIsKindAssertsMultipleDescendantChildInstanceFromAsKindSuffix(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("grandparent wrapped custom err: %w", xerror.Errorf("parent wrapped custom err: %w", xerror.Errorf("child wrapped custom err: %w", xerror.New("sea depth too low").AsKind("DEEP_WRAPPED_ERROR"))))
+	is.True(err.IsKind("DEEP_WRAPPED_ERROR"))
+	is.Equal(err.Error(), "grandparent wrapped custom err: parent wrapped custom err: child wrapped custom err: Kind: DEEP_WRAPPED_ERROR | sea depth too low")
+}
+
+const (
+	TestError       = xerror.Kind("test_error")
+	TestParamsError = xerror.Kind("test_params_error")
+)
 
 func TestErrorMsgMatchesGivenErrorMsg(t *testing.T) {
 	t.Run("error msg matches given initial msg but doesn't include context", func(t *testing.T) {
@@ -150,6 +182,7 @@ func TestErrorMsgMatchesGivenErrorMsg(t *testing.T) {
 
 		err := xerror.NewWithKind("MUTABLE_ERR", "test error message").Msg("replaced message!")
 		is.Equal(err.ErrorMsg(), "replaced message!")
+		is.Equal(err.Error(), "Kind: MUTABLE_ERR | replaced message!")
 	})
 }
 
@@ -159,6 +192,20 @@ func TestErrorToError(t *testing.T) {
 	nativeErr := xerror.NewWithKind("NATIVE_ERR", "native error").ToError()
 	is.True(nativeErr != nil)
 	is.Equal(nativeErr.Error(), "Kind: NATIVE_ERR | native error")
+}
+
+func TestErrorMethodWithoutPinnedDescendant(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.Errorf("not enough rocks").AsKind("WRAPPED_ERROR"))
+	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "wrapped custom err: Kind: WRAPPED_ERROR | not enough rocks")
+}
+
+func TestErrorMethodWithPinnedDescendant(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.Errorf("not enough rocks").AsKind("WRAPPED_ERROR").Pin())
+	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "Kind: WRAPPED_ERROR | wrapped custom err: not enough rocks")
 }
 
 type xerrorExpectedStringTest struct {
