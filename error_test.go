@@ -161,6 +161,18 @@ func TestIsKindAssertsMultipleDescendantChildInstanceFromAsKindSuffix(t *testing
 	is.True(err.IsKind("DEEP_WRAPPED_ERROR"))
 }
 
+func TestKindPinned(t *testing.T) {
+	is := is.New(t)
+	err := xerror.NewWithKind("NETWORK_ERROR", "something went wrong").Pin()
+	is.True(err.KindPinned())
+}
+
+func TestWrappedErrorHasKindPinned(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.NewWithKind("WRAPPED_ERROR", "not enough rocks").Pin())
+	is.True(err.KindPinned())
+}
+
 const (
 	TestError       = xerror.Kind("test_error")
 	TestParamsError = xerror.Kind("test_params_error")
