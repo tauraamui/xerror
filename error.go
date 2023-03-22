@@ -10,12 +10,14 @@ import (
 type XError interface {
 	Error() string
 	ErrorMsg() string
+	KindPinned() bool
 }
 
 type I interface {
 	AsKind(Kind) I
 	IsKind(Kind) bool
-	Pinned() XError
+	Pin() XError
+	isPinned() bool
 	ToError() error
 	XError
 	Msg(string) I
@@ -136,6 +138,22 @@ func (x *x) Is(e error) bool {
 	return false
 }
 
+func (x *x) KindPinned() bool {
+	if yes := x.pinned; yes {
+		return yes
+	}
+
+	if x.wrapped != nil {
+		return x.wrapped.isPinned()
+	}
+
+	return false
+}
+
+func (x *x) isPinned() bool {
+	return x.pinned
+}
+
 func (x *x) IsKind(k Kind) bool {
 	if yes := x.kind == k; yes {
 		return yes
@@ -154,7 +172,7 @@ func (x *x) AsKind(k Kind) I {
 	return x
 }
 
-func (x *x) Pinned() XError {
+func (x *x) Pin() XError {
 	defer x.format()
 	x.pinned = true
 	return x
