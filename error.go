@@ -45,8 +45,38 @@ type x struct {
 	params       map[string]interface{}
 }
 
-func Errorf(format string, values ...interface{}) I {
+func Errorf(format string, values ...any) I {
+	errorf(format, values)
 	return newFromError(fmt.Errorf(format, values...))
+}
+
+func errorf(format string, values []any) {
+	wrappedArgs(format)
+}
+
+func wrappedArgs(format string) []int {
+	args := []int{}
+	end := len(format)
+
+	for i := 0; i < end; {
+		b := format[i]
+		foundVerb := false
+		if b == '%' {
+			if i+1 >= end {
+				break
+			}
+			foundVerb = true
+			i++
+		}
+
+		if foundVerb && format[i] == 'w' {
+			fmt.Println("FOUND WRAP ARG")
+		}
+
+		i++
+	}
+
+	return args
 }
 
 func newFromError(e error) I {
