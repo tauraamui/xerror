@@ -29,3 +29,19 @@ func TestWrappedArgsBetweenOtherArgs(t *testing.T) {
 	is.True(len(args) == 1)
 	is.Equal(args[0], 2)
 }
+
+func TestKindPinned(t *testing.T) {
+	is := is.New(t)
+	err := NewWithKind("NETWORK_ERROR", "something went wrong").Pin()
+	x, ok := err.(*x)
+	is.True(ok)
+	is.True(x.isPinned())
+}
+
+func TestWrappedErrorHasKindPinned(t *testing.T) {
+	is := is.New(t)
+	err := Errorf("wrapped custom err: %w", NewWithKind("WRAPPED_ERROR", "not enough rocks").Pin())
+	x, ok := err.(*x)
+	is.True(ok)
+	is.True(x.isPinned())
+}
