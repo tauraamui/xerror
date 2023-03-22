@@ -143,6 +143,18 @@ func TestIsKind(t *testing.T) {
 	is.True(err.IsKind("RANDOM"))
 }
 
+func TestIsKindAssertsChildInstance(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.NewWithKind("WRAPPED_ERROR", "not enough rocks"))
+	is.True(err.IsKind("WRAPPED_ERROR"))
+}
+
+func TestIsKindAssertsChildInstanceFromAsKindSuffix(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.New("not enough rocks").AsKind("WRAPPED_ERROR"))
+	is.True(err.IsKind("WRAPPED_ERROR"))
+}
+
 const (
 	TestError       = xerror.Kind("test_error")
 	TestParamsError = xerror.Kind("test_params_error")
