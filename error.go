@@ -58,6 +58,7 @@ func wrappedArgs(format string) []int {
 	args := []int{}
 	end := len(format)
 
+	verbCount := 0
 	for i := 0; i < end; {
 		b := format[i]
 		foundVerb := false
@@ -66,11 +67,12 @@ func wrappedArgs(format string) []int {
 				break
 			}
 			foundVerb = true
+			verbCount++
 			i++
 		}
 
 		if foundVerb && format[i] == 'w' {
-			fmt.Println("FOUND WRAP ARG")
+			args = append(args, verbCount)
 		}
 
 		i++
