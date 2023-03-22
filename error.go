@@ -14,6 +14,7 @@ type XError interface {
 
 type I interface {
 	AsKind(Kind) I
+	IsKind(Kind) bool
 	Pinned() XError
 	ToError() error
 	XError
@@ -33,6 +34,7 @@ type Kind string
 const NA = Kind("N/A")
 
 type x struct {
+	wrapped      *x
 	kind         Kind
 	pinned       bool
 	causeErr     error
@@ -92,6 +94,10 @@ func (x *x) Is(e error) bool {
 	}
 
 	return false
+}
+
+func (x *x) IsKind(k Kind) bool {
+	return x.kind == k
 }
 
 func (x *x) AsKind(k Kind) I {
