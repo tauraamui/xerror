@@ -137,7 +137,15 @@ func (x *x) Is(e error) bool {
 }
 
 func (x *x) IsKind(k Kind) bool {
-	return x.kind == k
+	if yes := x.kind == k; yes {
+		return yes
+	}
+
+	if x.wrapped != nil {
+		return x.wrapped.IsKind(k)
+	}
+
+	return false
 }
 
 func (x *x) AsKind(k Kind) I {
