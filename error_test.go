@@ -42,9 +42,11 @@ func (x xerrorWrappedErrorIsTest) run(t *testing.T) {
 	})
 }
 
-var nativeErrorType = errors.New("native error type")
-var customErrorType = xerror.New("custom error type")
-var deepChildErrorType = xerror.New("deep error type")
+var (
+	nativeErrorType    = errors.New("native error type")
+	customErrorType    = xerror.New("custom error type")
+	deepChildErrorType = xerror.New("deep error type")
+)
 
 func TestWrappedErrorsFoundWithIsError(t *testing.T) {
 	tests := []xerrorWrappedErrorIsTest{
@@ -134,8 +136,17 @@ func TestNewErrorGivesErrInstance(t *testing.T) {
 	is.True(err != nil)
 }
 
-const TestError = xerror.Kind("test_error")
-const TestParamsError = xerror.Kind("test_params_error")
+func TestIsKind(t *testing.T) {
+	is := is.New(t)
+
+	err := xerror.New("test error").AsKind("RANDOM")
+	is.True(err.IsKind("RANDOM"))
+}
+
+const (
+	TestError       = xerror.Kind("test_error")
+	TestParamsError = xerror.Kind("test_params_error")
+)
 
 func TestErrorMsgMatchesGivenErrorMsg(t *testing.T) {
 	t.Run("error msg matches given initial msg but doesn't include context", func(t *testing.T) {
@@ -150,6 +161,7 @@ func TestErrorMsgMatchesGivenErrorMsg(t *testing.T) {
 
 		err := xerror.NewWithKind("MUTABLE_ERR", "test error message").Msg("replaced message!")
 		is.Equal(err.ErrorMsg(), "replaced message!")
+		is.Equal(err.Error(), "Kind: MUTABLE_ERR | replaced message!")
 	})
 }
 
