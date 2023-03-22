@@ -10,7 +10,6 @@ import (
 type XError interface {
 	Error() string
 	ErrorMsg() string
-	KindPinned() bool
 }
 
 type I interface {
@@ -36,7 +35,7 @@ type Kind string
 const NA = Kind("N/A")
 
 type x struct {
-	wrapped      I
+	wrapped      *x
 	kind         Kind
 	pinned       bool
 	causeErr     error
@@ -52,10 +51,10 @@ func Errorf(format string, values ...any) I {
 	return x
 }
 
-func extractWrapped(format string, values []any) I {
+func extractWrapped(format string, values []any) *x {
 	args := wrappedArgs(format)
 	if len(args) > 0 && len(values) >= args[0]-1 {
-		if ww, ok := values[args[0]-1].(I); ok {
+		if ww, ok := values[args[0]-1].(*x); ok {
 			return ww
 		}
 	}
@@ -90,7 +89,7 @@ func wrappedArgs(format string) []int {
 	return args
 }
 
-func newFromError(e error, w I) I {
+func newFromError(e error, w *x) I {
 	var cause error
 	if c := errors.Unwrap(e); c != nil {
 		cause = c
@@ -138,7 +137,7 @@ func (x *x) Is(e error) bool {
 	return false
 }
 
-func (x *x) KindPinned() bool {
+func (x *x) isPinned() bool {
 	if yes := x.pinned; yes {
 		return yes
 	}
@@ -148,10 +147,6 @@ func (x *x) KindPinned() bool {
 	}
 
 	return false
-}
-
-func (x *x) isPinned() bool {
-	return x.pinned
 }
 
 func (x *x) IsKind(k Kind) bool {
@@ -183,6 +178,8 @@ func (x *x) ToError() error {
 }
 
 func (x *x) Error() string {
+	x.format()
+
 	if x.stackTrace {
 		return x.stackPrinter(x.error)
 	}
