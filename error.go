@@ -231,10 +231,30 @@ func (x *x) WithParam(key string, v interface{}) I {
 	return x
 }
 
+func (x *x) resolveKind() Kind {
+	k := x.kind
+
+	pk, wasPinned := x.pinnedChildKind()
+	if wasPinned {
+		return pk
+	}
+
+	return k
+}
+
+func (x *x) pinnedChildKind() (Kind, bool) {
+	if x.wrapped == nil {
+		return x.kind, x.pinned
+	}
+
+	return x.wrapped.pinnedChildKind()
+}
+
 func (x *x) toString() string {
 	logMsg := x.errMsg
-	if x.kind != NA || len(x.params) > 0 {
-		logMsg = fmt.Sprintf("Kind: %s | %s", strings.ToUpper(string(x.kind)), x.errMsg)
+	kind := x.resolveKind()
+	if !x.pinned && kind != NA || len(x.params) > 0 {
+		logMsg = fmt.Sprintf("Kind: %s | %s", strings.ToUpper(string(kind)), x.errMsg)
 	}
 
 	params := []string{}
