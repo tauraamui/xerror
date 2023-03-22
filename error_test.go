@@ -194,9 +194,16 @@ func TestErrorToError(t *testing.T) {
 	is.Equal(nativeErr.Error(), "Kind: NATIVE_ERR | native error")
 }
 
+func TestErrorMethodWithoutPinnedDescendant(t *testing.T) {
+	is := is.New(t)
+	err := xerror.Errorf("wrapped custom err: %w", xerror.Errorf("not enough rocks").AsKind("WRAPPED_ERROR"))
+	is.True(err.IsKind("WRAPPED_ERROR"))
+	is.Equal(err.Error(), "wrapped custom err: Kind: WRAPPED_ERROR | not enough rocks")
+}
+
 func TestErrorMethodWithPinnedDescendant(t *testing.T) {
 	is := is.New(t)
-	err := xerror.Errorf("wrapped custom err: %w", xerror.NewWithKind("WRAPPED_ERROR", "not enough rocks").Pin())
+	err := xerror.Errorf("wrapped custom err: %w", xerror.Errorf("not enough rocks").AsKind("WRAPPED_ERROR").Pin())
 	is.True(err.IsKind("WRAPPED_ERROR"))
 	is.Equal(err.Error(), "Kind: WRAPPED_ERROR | wrapped custom err: not enough rocks")
 }
