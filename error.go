@@ -34,7 +34,7 @@ type Kind string
 const NA = Kind("N/A")
 
 type x struct {
-	wrapped      *x
+	wrapped      I
 	kind         Kind
 	pinned       bool
 	causeErr     error
@@ -46,12 +46,19 @@ type x struct {
 }
 
 func Errorf(format string, values ...any) I {
-	errorf(format, values)
-	return newFromError(fmt.Errorf(format, values...))
+	x := newFromError(fmt.Errorf(format, values...), errorf(format, values))
+	return x
 }
 
-func errorf(format string, values []any) {
-	wrappedArgs(format)
+func errorf(format string, values []any) I {
+	args := wrappedArgs(format)
+	if len(args) > 0 && len(values) >= args[0]-1 {
+		if ww, ok := values[args[0]-1].(I); ok {
+			return ww
+		}
+	}
+
+	return nil
 }
 
 func wrappedArgs(format string) []int {
@@ -81,12 +88,13 @@ func wrappedArgs(format string) []int {
 	return args
 }
 
-func newFromError(e error) I {
+func newFromError(e error, w I) I {
 	var cause error
 	if c := errors.Unwrap(e); c != nil {
 		cause = c
 	}
 	return &x{
+		wrapped:  w,
 		error:    e,
 		causeErr: cause,
 		kind:     NA, errMsg: e.Error(), stackTrace: false, pinned: false,
